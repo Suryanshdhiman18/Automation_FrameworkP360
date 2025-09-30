@@ -8,9 +8,12 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import base.BaseTest;
+import utils.ScreenshotUtil;
 
 import java.time.Duration;
 import java.util.List;
+//cd "C:\Users\<YourUser>\eclipse-workspace\P360_Automation"
+
 
 //import io.restassured.RestAssured;
 //import io.restassured.response.Response;
@@ -51,74 +54,62 @@ public class P360FunctionalityTest extends BaseTest {
 
         System.out.println("✅ Search button clicked for 'coke'.");
     }
-
-
+    
 //    @Test(priority = 4, dependsOnMethods = "clickSearchButton")
 //    public void openProductDetail() {
-//        // Click "View Detail" link for first product
+//        // Click on first product's "View Detail" link
 //        WebElement viewDetailLink = wait.until(ExpectedConditions.elementToBeClickable(
-//                By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")
-//        ));
+//                By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")));
 //        viewDetailLink.click();
+//        System.out.println("✅ Clicked on 'View Detail' for first product.");
 //
-//        System.out.println("✅ Clicked 'View Detail' of first product.");
-//    }
+//        // Validate product description is visible
+//        WebElement productDescription = wait.until(ExpectedConditions.visibilityOfElementLocated(
+//                By.xpath("//span[@class='product-description']")));
+//        
+//        Assert.assertTrue(productDescription.isDisplayed(),
+//                "❌ Product Detail page did not load properly (Product Description missing).");
+//
+//        System.out.println("✅ Product Detail page loaded successfully. Description: " 
+//                           + productDescription.getText());
+//    } -- Without Screenshot
     
     @Test(priority = 4, dependsOnMethods = "clickSearchButton")
     public void openProductDetail() {
-        // Click on first product's "View Detail" link
         WebElement viewDetailLink = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")));
         viewDetailLink.click();
         System.out.println("✅ Clicked on 'View Detail' for first product.");
 
-        // Validate product description is visible
         WebElement productDescription = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//span[@class='product-description']")));
-        
+
         Assert.assertTrue(productDescription.isDisplayed(),
                 "❌ Product Detail page did not load properly (Product Description missing).");
+
+        // Take screenshot after loading product details
+        ScreenshotUtil.captureScreenshot(driver, "ProductDetail");
 
         System.out.println("✅ Product Detail page loaded successfully. Description: " 
                            + productDescription.getText());
     }
 
     
-//    @Test(priority = 5, dependsOnMethods = "openProductDetail")
-//    public void exportProductDetailData() throws InterruptedException {
-//        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-//
-//        // Wait for the export/download button using class + nested span/icon
-//        WebElement exportButton = wait.until(ExpectedConditions.elementToBeClickable(
-//                By.xpath("//button[contains(@class,'p360-top-bar-actions-button')]//span[contains(@class,'material-symbols-outlined') and text()='download']")
-//        ));
-//
-//        // Click the export button
-//        exportButton.click();
-//        System.out.println("✅ Export button clicked. Product detail data download initiated.");
-//
-//        // Wait a few seconds to let the download start
-//        Thread.sleep(3000);
-//    }
-
     @Test(priority = 5, dependsOnMethods = "openProductDetail")
     public void exportSearchResults() {
-        // Wait until Export button is clickable
+        try {
+            // Wait for any toast messages to disappear
+            wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                    By.xpath("//span[contains(@class,'message')]")));
+        } catch (Exception e) {
+            System.out.println("⚠️ No toast message blocking the Export button.");
+        }
+
+        // Now safely click Export button
         WebElement exportButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//div[@class='p360-top-bar']//button[2]")));
-        
         exportButton.click();
         System.out.println("✅ Export button clicked.");
-
-        // (Optional) Add validation if a file is downloaded OR a confirmation toast appears
-        // Example: wait for toast message
-        try {
-            WebElement toast = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//div[contains(@class,'toast-message')]")));
-            System.out.println("✅ Export confirmed with message: " + toast.getText());
-        } catch (Exception e) {
-            System.out.println("⚠️ Export button clicked but no confirmation toast was found.");
-        }
     }
 
 

@@ -23,8 +23,8 @@ public class BaseTest {
     @AfterClass
     public void tearDown() {
         if (driver != null) {
-//            driver.quit();
-        	System.out.println("Return null");
+            driver.quit();
+//        	System.out.println("Return null");
         }
     }
 }
