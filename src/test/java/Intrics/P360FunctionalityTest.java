@@ -1,6 +1,7 @@
 package Intrics;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -10,10 +11,10 @@ import org.testng.annotations.Test;
 import base.BaseTest;
 import utils.ScreenshotUtil;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.Duration;
 import java.util.List;
-//cd "C:\Users\<YourUser>\eclipse-workspace\P360_Automation"
-
 
 //import io.restassured.RestAssured;
 //import io.restassured.response.Response;
@@ -93,7 +94,7 @@ public class P360FunctionalityTest extends BaseTest {
         System.out.println("✅ Product Detail page loaded successfully. Description: " 
                            + productDescription.getText());
     }
-
+    
     
     @Test(priority = 5, dependsOnMethods = "openProductDetail")
     public void exportSearchResults() {
@@ -111,8 +112,7 @@ public class P360FunctionalityTest extends BaseTest {
         exportButton.click();
         System.out.println("✅ Export button clicked.");
     }
-
-
+    
     
     @Test(priority = 6, dependsOnMethods = "openProductDetail")
     public void readGridData() {
@@ -155,4 +155,58 @@ public class P360FunctionalityTest extends BaseTest {
 //        Assert.assertEquals(firstRetailerCell.getText(), retailer, "❌ Retailer mismatch!");
 //        Assert.assertEquals(firstPriceCell.getText(), regularPrice, "❌ Regular Price mismatch!");
 //    }
+    
+    @Test(priority = 8, dependsOnMethods = "openProductDetail")
+    public void checkBrokenLinksAndImages() {
+        System.out.println("🔍 Checking broken links...");
+
+        List<WebElement> links = driver.findElements(By.tagName("a"));
+        for (WebElement link : links) {
+            String url = link.getAttribute("href");
+            if (url == null || url.isEmpty() || url.startsWith("javascript")) continue;
+
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setRequestMethod("HEAD");
+                conn.connect();
+                int status = conn.getResponseCode();
+
+                if (status >= 400) {
+                    System.out.println("❌ Broken Link: " + url + " → " + status);
+                } else {
+                    System.out.println("✅ Valid Link: " + url + " → " + status);
+                }
+
+            } catch (Exception e) {
+                System.out.println("❌ Exception on Link: " + url + " → " + e.getMessage());
+            }
+        }
+
+        System.out.println("🔍 Checking broken images...");
+
+        List<WebElement> images = driver.findElements(By.tagName("img"));
+        for (WebElement img : images) {
+            String src = img.getAttribute("src");
+            if (src == null || src.isEmpty()) continue;
+
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(src).openConnection();
+                conn.setRequestMethod("HEAD");
+                conn.connect();
+                int status = conn.getResponseCode();
+
+                if (status >= 400) {
+                    System.out.println("❌ Broken Image: " + src + " → " + status);
+                } else {
+                    System.out.println("🖼️ Valid Image: " + src + " → " + status);
+                }
+
+            } catch (Exception e) {
+                System.out.println("❌ Exception on Image: " + src + " → " + e.getMessage());
+            }
+        }
+    }
+
+    
+    
 }
