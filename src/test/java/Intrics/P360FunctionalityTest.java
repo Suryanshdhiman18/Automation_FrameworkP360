@@ -3,6 +3,7 @@ package Intrics;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -75,26 +76,65 @@ public class P360FunctionalityTest extends BaseTest {
 //                           + productDescription.getText());
 //    } -- Without Screenshot
     
+//    @Test(priority = 4, dependsOnMethods = "clickSearchButton")
+//    public void openProductDetail() {
+//        WebElement viewDetailLink = wait.until(ExpectedConditions.elementToBeClickable(
+//                By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")));
+//        viewDetailLink.click();
+//        System.out.println("✅ Clicked on 'View Detail' for first product.");
+//
+//        WebElement productDescription = wait.until(ExpectedConditions.visibilityOfElementLocated(
+//                By.xpath("//span[@class='product-description']")));
+//
+//        Assert.assertTrue(productDescription.isDisplayed(),
+//                "❌ Product Detail page did not load properly (Product Description missing).");
+//
+//        // Take screenshot after loading product details
+//        ScreenshotUtil.captureScreenshot(driver, "ProductDetail");
+//
+//        System.out.println("✅ Product Detail page loaded successfully. Description: " 
+//                           + productDescription.getText());
+//    }
+    
     @Test(priority = 4, dependsOnMethods = "clickSearchButton")
     public void openProductDetail() {
-        WebElement viewDetailLink = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")));
-        viewDetailLink.click();
-        System.out.println("✅ Clicked on 'View Detail' for first product.");
+        try {
+            // Retry block to handle stale elements
+            int attempts = 0;
+            boolean clicked = false;
 
-        WebElement productDescription = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[@class='product-description']")));
+            while (attempts < 3 && !clicked) {
+                try {
+                    // Locate the 'View Detail' link right before clicking
+                    WebElement viewDetailLink = wait.until(ExpectedConditions.elementToBeClickable(
+                            By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")));
+                    viewDetailLink.click();
+                    clicked = true;
+                    System.out.println("✅ Clicked on 'View Detail' for first product.");
+                } catch (StaleElementReferenceException e) {
+                    attempts++;
+                    System.out.println("⚠️ Stale element detected, retrying... Attempt #" + attempts);
+                }
+            }
 
-        Assert.assertTrue(productDescription.isDisplayed(),
-                "❌ Product Detail page did not load properly (Product Description missing).");
+            // Wait for product description to be visible
+            WebElement productDescription = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//span[@class='product-description']")));
 
-        // Take screenshot after loading product details
-        ScreenshotUtil.captureScreenshot(driver, "ProductDetail");
+            Assert.assertTrue(productDescription.isDisplayed(),
+                    "❌ Product Detail page did not load properly (Product Description missing).");
 
-        System.out.println("✅ Product Detail page loaded successfully. Description: " 
-                           + productDescription.getText());
+            // Take screenshot after loading product details
+            ScreenshotUtil.captureScreenshot(driver, "ProductDetail");
+
+            System.out.println("✅ Product Detail page loaded successfully. Description: " 
+                               + productDescription.getText());
+        } catch (Exception e) {
+            ScreenshotUtil.captureScreenshot(driver, "ProductDetail_Error");
+            Assert.fail("❌ Failed to open product detail: " + e.getMessage());
+        }
     }
-    
+
     
     @Test(priority = 5, dependsOnMethods = "openProductDetail")
     public void exportSearchResults() {
@@ -116,17 +156,46 @@ public class P360FunctionalityTest extends BaseTest {
     
     @Test(priority = 6, dependsOnMethods = "openProductDetail")
     public void readGridData() {
-        // Example: capture the first row Retailer + Price
-        WebElement firstRetailerCell = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("(//div[@class='ag-center-cols-container']//div[contains(@class,'ag-row')])[1]//div[contains(@col-id,'Retailer')]")
-        ));
-        WebElement firstPriceCell = driver.findElement(
-                By.xpath("(//div[@class='ag-center-cols-container']//div[contains(@class,'ag-row')])[1]//div[contains(@col-id,'Regular Price')]")
-        );
+        // Wait for the grid (table) container to load completely
+        WebElement tableContainer = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[@class='table-allignment']")));
+        System.out.println("✅ Table container loaded successfully.");
 
-        System.out.println("🟢 UI Grid -> Retailer: " + firstRetailerCell.getText() +
-                           " | Price: " + firstPriceCell.getText());
+        // Fetch all retailer cells dynamically (works for 1 or many)
+        List<WebElement> retailerCells = driver.findElements(
+                By.xpath("//div[@class='table-allignment']//table//td[contains(text(),'Retailer') or normalize-space(text())!='']"));
+
+        // Fetch all price cells dynamically
+        List<WebElement> priceCells = driver.findElements(
+                By.xpath("//div[@class='table-allignment']//table//td[contains(text(),'$') or contains(@class,'price')]"));
+
+        // Validation — check if table contains at least one retailer
+        if (retailerCells.isEmpty()) {
+            System.out.println("⚠️ No retailer data found for this product.");
+            ScreenshotUtil.captureScreenshot(driver, "GridData_NoRetailers");
+            Assert.fail("❌ Product has no retailer data in the grid.");
+            return;
+        }
+
+        System.out.println("🟩 Retailers found: " + retailerCells.size());
+        System.out.println("🟩 Prices found: " + priceCells.size());
+
+        // Print all available rows (handles 1 or multiple rows safely)
+        for (int i = 0; i < retailerCells.size(); i++) {
+            String retailer = retailerCells.get(i).getText().trim();
+            String price = (i < priceCells.size()) ? priceCells.get(i).getText().trim() : "N/A";
+
+            System.out.println("🟢 Row " + (i + 1) + " → Retailer: " + retailer + " | Price: " + price);
+        }
+
+        // Take screenshot of the full grid
+        ScreenshotUtil.captureScreenshot(driver, "GridData");
+
+        // Final assertion: at least 1 retailer must be displayed
+        Assert.assertTrue(!retailerCells.isEmpty(), "❌ No data rows loaded in grid.");
     }
+
+
 
 //    @Test(priority = 7, dependsOnMethods = "readGridData")
 //    public void verifyGridDataWithAPI() {
