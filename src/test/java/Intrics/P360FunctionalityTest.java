@@ -1,6 +1,7 @@
 package Intrics;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.StaleElementReferenceException;
@@ -15,7 +16,11 @@ import utils.ScreenshotUtil;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 //import io.restassured.RestAssured;
 //import io.restassured.response.Response;
@@ -136,22 +141,59 @@ public class P360FunctionalityTest extends BaseTest {
     }
 
     
+//    @Test(priority = 5, dependsOnMethods = "openProductDetail")
+//    public void exportSearchResults() {
+//        try {
+//            // Wait for any toast messages to disappear
+//            wait.until(ExpectedConditions.invisibilityOfElementLocated(
+//                    By.xpath("//span[contains(@class,'message')]")));
+//        } catch (Exception e) {
+//            System.out.println("⚠️ No toast message blocking the Export button.");
+//        }
+//
+//        // Now safely click Export button
+//        WebElement exportButton = wait.until(ExpectedConditions.elementToBeClickable(
+//                By.xpath("//div[@class='p360-top-bar']//button[2]")));
+//        exportButton.click();
+//        System.out.println("✅ Export button clicked.");
+//    }
     @Test(priority = 5, dependsOnMethods = "openProductDetail")
     public void exportSearchResults() {
         try {
-            // Wait for any toast messages to disappear
-            wait.until(ExpectedConditions.invisibilityOfElementLocated(
-                    By.xpath("//span[contains(@class,'message')]")));
-        } catch (Exception e) {
-            System.out.println("⚠️ No toast message blocking the Export button.");
-        }
+            // Wait for any toast messages or overlays to disappear
+            try {
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                        By.xpath("//span[contains(@class,'message')]")));
+            } catch (Exception e) {
+                System.out.println("⚠️ No toast message blocking the Export button.");
+            }
 
-        // Now safely click Export button
-        WebElement exportButton = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//div[@class='p360-top-bar']//button[2]")));
-        exportButton.click();
-        System.out.println("✅ Export button clicked.");
+            // Locate Export button
+            WebElement exportButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//div[@class='p360-top-bar']//button[2]")));
+
+            // Scroll into view in case it's hidden behind header
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", exportButton);
+            Thread.sleep(500); // small wait to stabilize view
+
+            // Try clicking — fallback to JS click if intercepted
+            try {
+                wait.until(ExpectedConditions.elementToBeClickable(exportButton)).click();
+                System.out.println("✅ Export button clicked normally.");
+            } catch (ElementClickInterceptedException e) {
+                System.out.println("⚠️ Click intercepted. Retrying with JS click...");
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", exportButton);
+                System.out.println("✅ Export button clicked via JavaScript.");
+            }
+
+            // Take a screenshot after successful click
+            ScreenshotUtil.captureScreenshot(driver, "ExportSearchResults");
+
+        } catch (Exception e) {
+            Assert.fail("❌ Unexpected error during export: " + e.getMessage());
+        }
     }
+
     
     
     @Test(priority = 6, dependsOnMethods = "openProductDetail")
@@ -199,31 +241,125 @@ public class P360FunctionalityTest extends BaseTest {
 
 //    @Test(priority = 7, dependsOnMethods = "readGridData")
 //    public void verifyGridDataWithAPI() {
-//        // Example API call (replace with real productId)
+//        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+//
+//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("kendo-grid")));
+//        System.out.println("✅ Table container loaded successfully.");
+//
+//        List<WebElement> lockedRows = driver.findElements(By.cssSelector(".k-grid-content-locked tbody tr"));
+//        List<WebElement> scrollableRows = driver.findElements(By.cssSelector(".k-grid-content.k-virtual-content tbody tr"));
+//
+//        System.out.println("🟩 Retailer rows found: " + lockedRows.size());
+//        System.out.println("🟩 Price rows found: " + scrollableRows.size());
+//
+//        Assert.assertEquals(lockedRows.size(), scrollableRows.size(),
+//                "❌ Mismatch between locked and scrollable rows!");
+//
+//        for (int i = 0; i < lockedRows.size(); i++) {
+//            String retailer = lockedRows.get(i).findElement(By.cssSelector("td")).getText().trim();
+//            List<WebElement> priceCells = scrollableRows.get(i).findElements(By.cssSelector("td"));
+//
+//            List<String> prices = new ArrayList<>();
+//            for (WebElement cell : priceCells) {
+//                String value = cell.getText().trim();
+//                if (!value.isEmpty()) {
+//                    prices.add(value);
+//                }
+//            }
+//
+//            System.out.println("🟢 Row " + (i + 1) + " → Retailer: " + retailer + " | Prices: " + prices);
+//        }
+//
+//        // 🔒 API verification (will be re-enabled later)
+//        /*
 //        Response response = RestAssured
 //                .given()
 //                .baseUri("https://rdcas-syn-hom-app-1-uat.azurewebsites.net")
 //                .when()
-//                .get("/price-iq/api/product/12345/details") // 🔴 replace dynamically
+//                .get("/price-iq/api/product/12345/details")
 //                .then()
 //                .statusCode(200)
 //                .extract().response();
 //
-//        String retailer = response.jsonPath().getString("retailer[0].name");
-//        String regularPrice = response.jsonPath().getString("retailer[0].regularPrice");
+//        String apiRetailer = response.jsonPath().getString("retailer[0].name");
+//        String apiPrice = response.jsonPath().getString("retailer[0].regularPrice");
 //
-//        System.out.println("🟢 API -> Retailer: " + retailer + " | Regular Price: " + regularPrice);
+//        Assert.assertTrue(retailer.contains(apiRetailer), "❌ Retailer name mismatch!");
+//        Assert.assertTrue(prices.contains(apiPrice), "❌ Regular Price mismatch!");
+//        */
 //
-//        WebElement firstRetailerCell = driver.findElement(
-//                By.xpath("(//div[@class='ag-center-cols-container']//div[contains(@class,'ag-row')])[1]//div[contains(@col-id,'Retailer')]")
-//        );
-//        WebElement firstPriceCell = driver.findElement(
-//                By.xpath("(//div[@class='ag-center-cols-container']//div[contains(@class,'ag-row')])[1]//div[contains(@col-id,'Regular Price')]")
-//        );
-//
-//        Assert.assertEquals(firstRetailerCell.getText(), retailer, "❌ Retailer mismatch!");
-//        Assert.assertEquals(firstPriceCell.getText(), regularPrice, "❌ Regular Price mismatch!");
+//        Assert.assertTrue(lockedRows.size() > 0, "❌ No grid rows found to verify!");
 //    }
+
+    @Test(priority = 7, dependsOnMethods = "readGridData")
+    public void verifyGridDataWithAPI() {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+        // Wait for the Kendo grid to appear
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("kendo-grid")));
+        System.out.println("✅ Table container loaded successfully.");
+
+        // --- Step 1: Get all header names ---
+        List<WebElement> headerCells = driver.findElements(By.cssSelector(".k-grid-header thead th"));
+        List<String> headers = new ArrayList<>();
+
+        for (WebElement header : headerCells) {
+            String headerName = header.getText().trim();
+            if (!headerName.isEmpty()) {
+                headers.add(headerName);
+            }
+        }
+
+        System.out.println("🟦 Headers found: " + headers);
+
+        // --- Step 2: Get all rows from both sections ---
+        List<WebElement> lockedRows = driver.findElements(By.cssSelector(".k-grid-content-locked tbody tr"));
+        List<WebElement> scrollableRows = driver.findElements(By.cssSelector(".k-grid-content.k-virtual-content tbody tr"));
+
+        Assert.assertTrue(!lockedRows.isEmpty(), "❌ No grid rows found!");
+        System.out.println("🟩 Total rows found: " + lockedRows.size());
+
+        // --- Step 3: Loop through each row ---
+        for (int i = 0; i < lockedRows.size(); i++) {
+            Map<String, String> rowData = new LinkedHashMap<>();
+
+            // Retailer cell (locked)
+            String retailer = lockedRows.get(i).findElement(By.cssSelector("td")).getText().trim();
+            rowData.put("Retailer", retailer);
+
+            // All other price columns (scrollable section)
+            List<WebElement> priceCells = scrollableRows.get(i).findElements(By.cssSelector("td"));
+            for (int j = 0; j < priceCells.size() && j + 1 < headers.size(); j++) { // +1 offset for Retailer column
+                String headerName = headers.get(j + 1); // Skip Retailer
+                String cellValue = priceCells.get(j).getText().trim();
+                rowData.put(headerName, cellValue.isEmpty() ? "N/A" : cellValue);
+            }
+
+            // --- Print row data neatly ---
+            System.out.println("🟢 Row " + (i + 1) + " Data: " + rowData);
+        }
+
+        // --- Step 4: (Optional) API comparison (to add later) ---
+        /*
+        Response response = RestAssured
+                .given()
+                .baseUri("https://rdcas-syn-hom-app-1-uat.azurewebsites.net")
+                .when()
+                .get("/price-iq/api/product/12345/details")
+                .then()
+                .statusCode(200)
+                .extract().response();
+
+        // Example mapping of API vs UI
+        String apiRetailer = response.jsonPath().getString("retailers[0].name");
+        String apiRegularPrice = response.jsonPath().getString("retailers[0].regularPrice");
+        Assert.assertEquals(rowData.get("Retailer"), apiRetailer, "❌ Retailer mismatch!");
+        Assert.assertEquals(rowData.get("Regular Price"), apiRegularPrice, "❌ Regular Price mismatch!");
+        */
+    }
+
+
+
     
     @Test(priority = 8, dependsOnMethods = "openProductDetail")
     public void checkBrokenLinksAndImages() {
