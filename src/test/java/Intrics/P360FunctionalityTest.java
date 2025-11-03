@@ -1,5 +1,7 @@
 package Intrics;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
@@ -11,6 +13,9 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import base.BaseTest;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+import utils.GridUtils;
 import utils.ScreenshotUtil;
 
 import java.net.HttpURLConnection;
@@ -81,26 +86,6 @@ public class P360FunctionalityTest extends BaseTest {
 //                           + productDescription.getText());
 //    } -- Without Screenshot
     
-//    @Test(priority = 4, dependsOnMethods = "clickSearchButton")
-//    public void openProductDetail() {
-//        WebElement viewDetailLink = wait.until(ExpectedConditions.elementToBeClickable(
-//                By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")));
-//        viewDetailLink.click();
-//        System.out.println("✅ Clicked on 'View Detail' for first product.");
-//
-//        WebElement productDescription = wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                By.xpath("//span[@class='product-description']")));
-//
-//        Assert.assertTrue(productDescription.isDisplayed(),
-//                "❌ Product Detail page did not load properly (Product Description missing).");
-//
-//        // Take screenshot after loading product details
-//        ScreenshotUtil.captureScreenshot(driver, "ProductDetail");
-//
-//        System.out.println("✅ Product Detail page loaded successfully. Description: " 
-//                           + productDescription.getText());
-//    }
-    
     @Test(priority = 4, dependsOnMethods = "clickSearchButton")
     public void openProductDetail() {
         try {
@@ -140,23 +125,6 @@ public class P360FunctionalityTest extends BaseTest {
         }
     }
 
-    
-//    @Test(priority = 5, dependsOnMethods = "openProductDetail")
-//    public void exportSearchResults() {
-//        try {
-//            // Wait for any toast messages to disappear
-//            wait.until(ExpectedConditions.invisibilityOfElementLocated(
-//                    By.xpath("//span[contains(@class,'message')]")));
-//        } catch (Exception e) {
-//            System.out.println("⚠️ No toast message blocking the Export button.");
-//        }
-//
-//        // Now safely click Export button
-//        WebElement exportButton = wait.until(ExpectedConditions.elementToBeClickable(
-//                By.xpath("//div[@class='p360-top-bar']//button[2]")));
-//        exportButton.click();
-//        System.out.println("✅ Export button clicked.");
-//    }
     @Test(priority = 5, dependsOnMethods = "openProductDetail")
     public void exportSearchResults() {
         try {
@@ -194,7 +162,6 @@ public class P360FunctionalityTest extends BaseTest {
         }
     }
 
-    
     
     @Test(priority = 6, dependsOnMethods = "openProductDetail")
     public void readGridData() {
@@ -292,7 +259,7 @@ public class P360FunctionalityTest extends BaseTest {
 //    }
 
     @Test(priority = 7, dependsOnMethods = "readGridData")
-    public void verifyGridDataWithAPI() {
+    public void verifyGridDataWithUI() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
         // Wait for the Kendo grid to appear
@@ -411,7 +378,102 @@ public class P360FunctionalityTest extends BaseTest {
             }
         }
     }
+    
+    @Test(priority = 10, dependsOnMethods = "verifyGridDataWithUI")
+    public void verifyGridDataWithAPI() {
+        try {
+            System.out.println("🔍 Starting API-based grid data verification...");
 
-    
-    
+            // --- Step 1: Get the UPC or SK_DIMUPC from the product detail card ---
+            WebElement upcElement = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.xpath("//label[normalize-space()='UPC:']/following-sibling::span")));
+            String upc = upcElement.getText().trim();
+            System.out.println("📦 UPC found on Product Detail page: " + upc);
+            
+//            GridUtils gridUtils = new GridUtils(driver);
+//            Map<String, Map<String, String>> gridData = gridUtils.extractGridData();
+
+
+            // --- Step 2: Hit the LoadProduct360ViewV5 API ---
+            JSONObject requestPayload = new JSONObject();
+            requestPayload.put("Regions", new JSONArray());
+            requestPayload.put("ViewSource", 1);
+            requestPayload.put("IsWeb", true);
+            requestPayload.put("Divisions", new JSONArray());
+            requestPayload.put("Markets", new JSONArray());
+            requestPayload.put("FocusRetailer", "");
+            requestPayload.put("GeoGrouping", "Market");
+            requestPayload.put("SK_DIMUPC", 2204761); // 🔁 TODO: Replace with dynamic SK_DIMUPC if available
+
+            Response response = RestAssured
+                    .given()
+                    .baseUri("https://rdcas-syn-api-1-dev.azurewebsites.net")
+                    .header("Content-Type", "application/json")
+                    .body(requestPayload.toString())
+                    .when()
+                    .post("/api/LoadProduct360ViewV5")
+                    .then()
+                    .statusCode(200)
+                    .extract()
+                    .response();
+
+            // --- Step 3: Parse API response ---
+            List<Map<String, Object>> retailers = response.jsonPath().getList("AdditionalRetailers");
+            System.out.println("🟦 API Retailers found: " + retailers.size());
+
+            // --- Step 4: Extract UI grid data ---
+            GridUtils gridUtils = new GridUtils(driver);
+            Map<String, Map<String, String>> gridData = extractGridData();
+            System.out.println("🟩 UI grid data extracted: " + gridData.size() + " rows.");
+
+            // --- Step 5: Compare UI vs API values ---
+            for (Map<String, Object> retailerData : retailers) {
+                String apiRetailer = (String) retailerData.get("RetailerName");
+                Double regMin = retailerData.get("RegPriceCurWeekMin") != null
+                        ? Double.parseDouble(retailerData.get("RegPriceCurWeekMin").toString()) : null;
+                Double regMax = retailerData.get("RegPriceCurWeekMax") != null
+                        ? Double.parseDouble(retailerData.get("RegPriceCurWeekMax").toString()) : null;
+                Double effectivePrice = retailerData.get("EffectivePriceCurWeekMode") != null
+                        ? Double.parseDouble(retailerData.get("EffectivePriceCurWeekMode").toString()) : null;
+                Double regIndex = retailerData.get("RegPriceIndex") != null
+                        ? Double.parseDouble(retailerData.get("RegPriceIndex").toString()) : null;
+
+                System.out.println("🔸 API → Retailer: " + apiRetailer +
+                        " | Regular: " + regMin + "-" + regMax +
+                        " | Effective: " + effectivePrice +
+                        " | Index: " + regIndex);
+
+                if (gridData.containsKey(apiRetailer)) {
+                    Map<String, String> uiRow = gridData.get(apiRetailer);
+                    String uiRegular = uiRow.getOrDefault("Regular Price", "N/A");
+                    String uiEffective = uiRow.getOrDefault("Effective Price", "N/A");
+                    String uiIndex = uiRow.getOrDefault("Index", "N/A");
+
+                    // --- Step 6: Assertions ---
+                    Assert.assertTrue(uiRegular.contains(String.valueOf(Math.round(regMin))),
+                            "❌ Regular Price mismatch for " + apiRetailer);
+                    Assert.assertTrue(uiEffective.contains(String.valueOf(Math.round(effectivePrice))),
+                            "❌ Effective Price mismatch for " + apiRetailer);
+                    Assert.assertTrue(uiIndex.contains(String.valueOf(Math.round(regIndex))),
+                            "❌ Index mismatch for " + apiRetailer);
+
+                    System.out.println("✅ Verified Retailer: " + apiRetailer);
+                } else {
+                    System.out.println("⚠️ Retailer " + apiRetailer + " not found in UI grid.");
+                }
+            }
+
+            System.out.println("🎯 Grid data successfully validated against API.");
+
+        } catch (Exception e) {
+            ScreenshotUtil.captureScreenshot(driver, "VerifyGridDataWithAPI_Error");
+            Assert.fail("❌ Grid vs API verification failed: " + e.getMessage());
+        }
+    }
+
+	private Map<String, Map<String, String>> extractGridData() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
