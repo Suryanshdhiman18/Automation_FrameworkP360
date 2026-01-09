@@ -25,7 +25,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
+
+
+import utils.AuthUtils;
 
 //import io.restassured.RestAssured;
 //import io.restassured.response.Response;
@@ -67,24 +71,6 @@ public class P360FunctionalityTest extends BaseTest {
         System.out.println("✅ Search button clicked for 'coke'.");
     }
     
-//    @Test(priority = 4, dependsOnMethods = "clickSearchButton")
-//    public void openProductDetail() {
-//        // Click on first product's "View Detail" link
-//        WebElement viewDetailLink = wait.until(ExpectedConditions.elementToBeClickable(
-//                By.xpath("//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]")));
-//        viewDetailLink.click();
-//        System.out.println("✅ Clicked on 'View Detail' for first product.");
-//
-//        // Validate product description is visible
-//        WebElement productDescription = wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                By.xpath("//span[@class='product-description']")));
-//        
-//        Assert.assertTrue(productDescription.isDisplayed(),
-//                "❌ Product Detail page did not load properly (Product Description missing).");
-//
-//        System.out.println("✅ Product Detail page loaded successfully. Description: " 
-//                           + productDescription.getText());
-//    } -- Without Screenshot
     
     @Test(priority = 4, dependsOnMethods = "clickSearchButton")
     public void openProductDetail() {
@@ -203,60 +189,6 @@ public class P360FunctionalityTest extends BaseTest {
         // Final assertion: at least 1 retailer must be displayed
         Assert.assertTrue(!retailerCells.isEmpty(), "❌ No data rows loaded in grid.");
     }
-
-
-
-//    @Test(priority = 7, dependsOnMethods = "readGridData")
-//    public void verifyGridDataWithAPI() {
-//        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-//
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("kendo-grid")));
-//        System.out.println("✅ Table container loaded successfully.");
-//
-//        List<WebElement> lockedRows = driver.findElements(By.cssSelector(".k-grid-content-locked tbody tr"));
-//        List<WebElement> scrollableRows = driver.findElements(By.cssSelector(".k-grid-content.k-virtual-content tbody tr"));
-//
-//        System.out.println("🟩 Retailer rows found: " + lockedRows.size());
-//        System.out.println("🟩 Price rows found: " + scrollableRows.size());
-//
-//        Assert.assertEquals(lockedRows.size(), scrollableRows.size(),
-//                "❌ Mismatch between locked and scrollable rows!");
-//
-//        for (int i = 0; i < lockedRows.size(); i++) {
-//            String retailer = lockedRows.get(i).findElement(By.cssSelector("td")).getText().trim();
-//            List<WebElement> priceCells = scrollableRows.get(i).findElements(By.cssSelector("td"));
-//
-//            List<String> prices = new ArrayList<>();
-//            for (WebElement cell : priceCells) {
-//                String value = cell.getText().trim();
-//                if (!value.isEmpty()) {
-//                    prices.add(value);
-//                }
-//            }
-//
-//            System.out.println("🟢 Row " + (i + 1) + " → Retailer: " + retailer + " | Prices: " + prices);
-//        }
-//
-//        // 🔒 API verification (will be re-enabled later)
-//        /*
-//        Response response = RestAssured
-//                .given()
-//                .baseUri("https://rdcas-syn-hom-app-1-uat.azurewebsites.net")
-//                .when()
-//                .get("/price-iq/api/product/12345/details")
-//                .then()
-//                .statusCode(200)
-//                .extract().response();
-//
-//        String apiRetailer = response.jsonPath().getString("retailer[0].name");
-//        String apiPrice = response.jsonPath().getString("retailer[0].regularPrice");
-//
-//        Assert.assertTrue(retailer.contains(apiRetailer), "❌ Retailer name mismatch!");
-//        Assert.assertTrue(prices.contains(apiPrice), "❌ Regular Price mismatch!");
-//        */
-//
-//        Assert.assertTrue(lockedRows.size() > 0, "❌ No grid rows found to verify!");
-//    }
 
     @Test(priority = 7, dependsOnMethods = "readGridData")
     public void verifyGridDataWithUI() {
@@ -395,6 +327,7 @@ public class P360FunctionalityTest extends BaseTest {
 
 
             // --- Step 2: Hit the LoadProduct360ViewV5 API ---
+            
             JSONObject requestPayload = new JSONObject();
             requestPayload.put("Regions", new JSONArray());
             requestPayload.put("ViewSource", 1);
@@ -405,18 +338,48 @@ public class P360FunctionalityTest extends BaseTest {
             requestPayload.put("GeoGrouping", "Market");
             requestPayload.put("SK_DIMUPC", 2204761); // 🔁 TODO: Replace with dynamic SK_DIMUPC if available
 
-            Response response = RestAssured
-                    .given()
-                    .baseUri("https://rdcas-syn-api-1-dev.azurewebsites.net")
+             
+            String clientId = "538dbed6-a397-4081-89f5-bf8a2082bcee";
+            String authCode = "1.ARcAOEqNwBthMk-FiVCT_3tpENa-jVOXo4FAifW_iiCCvO5oAUgXAA.AgABBAIAAABlMNzVhAPUTrARzfQjWPtKAwDs_wUA9P-uwUYFKpghdQ8kiEkdyWfuPCHaQexpLbx1q4YD5W88k1ftq4DPuf7GUwmBdAyD7NEO_Psug3fdFysNrM2Yx4NEXWS9Pzmg6q695HyJUTdtgoGEgZTGk7n51I4ts1_GXMlXPkoSzISRAIJWHZ6ka5iqVGkhxyzaz0_KV1zdkwaN1Dt6PEv83vA2vACaCyF-KMPjTalUmfedeU2DLXtIuMjxkVwIvOip25nsXkzkONqZ8hQPKTiHKWr3crwPzN6P47skJgexQ2ZojfvH3P2fs1O95tOVnswgEUKdmLg67P7Ty0jEtgM4jouIT5xH0CZOOTKc9ckQouJ14ddWDS3fChyeLDrDZeqGL2O62twhUCPYkc8AOYBowo9W0BshF8jujX6yKFdD9-MYJ63pEPXdrqkIexMQEx-sMYqyUF_dHazv1Zvyspsb34XDEB28wQ4wc_Ms6-5menLOhkOyE5s0wGpUC3lpcJo6q_8zxZWFegWJLLFjcWFZovXDmINntvLhLBZk8TACLnT_AkQqT52UrLqLHfyEJgTJojV7gAa2FX8noxtb4eYUxnVz7cjYm8RHLm2KNmUvYKRelB7rcP0Q83L4SemCsEOL-yEYK8yP9HgyInC2735puDL-6kqSvuToAncdfaWwRlbeE1kAJV_zQ0CEw4It7mZu7rJo3ANli7aGP9WVJda1jmKhZjJlLMgQw_cXgJpfNqM8_Z3aITWkwD8osb5C5YpFw3AlWLDtfyTf9uuYcm_bUeogseRswJmget3KQ9ODYNNxNw4Gc7V50kRFb8zhJxRbZpQpFPd8OCajuoWJbFIeQ3IteOTN6xbgrVyku06IX3MHcAa7mjN0ceREQV8r86olH0c70i-V5kkenZTLgtIdX667x-78Q0I5QKmyrjf1ADPF5fKuwF7y-QGkdlSwAmIlBGlzurJSqoNTHBynu2776hBt6voFIwu7ihu0btzuZTF5Ylz2DKDfnyw5At7mcQ";
+
+           
+            String bearerToken = AuthUtils.getBearerTokenFromAuthCode(clientId, authCode);
+           
+            
+//            String bearerToken = AuthUtils.getBearerToken();
+
+            if (bearerToken == null || bearerToken.isEmpty()) {
+                Assert.fail("❌ Could not fetch Bearer Token from Microsoft API.");
+            }
+
+            Response response = RestAssured.given()
+                    .header("Authorization", "Bearer " + bearerToken)
                     .header("Content-Type", "application/json")
                     .body(requestPayload.toString())
-                    .when()
-                    .post("/api/LoadProduct360ViewV5")
+                    .post("https://rdcas-syn-api-1-dev.azurewebsites.net/api/LoadProduct360ViewV5")
                     .then()
                     .statusCode(200)
                     .extract()
                     .response();
 
+            System.out.println("✅ API call successful!");
+            System.out.println(response.asPrettyString());
+
+            
+//            AuthUtils auth = new AuthUtils(driver);
+//            String token = auth.getAuthTokenFromBrowser();
+//            
+//            Response response = RestAssured.given()
+//            	    .header("Authorization", "Bearer " + token)
+//            	    .header("Content-Type", "application/json")
+//            	    .body(requestPayload.toString())
+//            	    .post("https://rdcas-syn-api-1-dev.azurewebsites.net/api/LoadProduct360ViewV5")
+//            	    .then()
+//            	    .statusCode(200)
+//            	    .extract()
+//            	    .response();
+
+            
             // --- Step 3: Parse API response ---
             List<Map<String, Object>> retailers = response.jsonPath().getList("AdditionalRetailers");
             System.out.println("🟦 API Retailers found: " + retailers.size());
