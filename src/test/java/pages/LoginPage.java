@@ -1,14 +1,17 @@
-package utils;
+package pages;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
+import utils.ConfigReader;
+
 import java.time.Duration;
 import java.util.Scanner;
 
-public class LoginHelper {
+public class LoginPage {
 
     public static void login(WebDriver driver) throws InterruptedException {
         driver.get(utils.ConfigReader.getProperty("url"));

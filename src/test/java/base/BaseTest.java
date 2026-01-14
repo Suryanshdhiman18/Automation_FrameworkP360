@@ -5,7 +5,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import io.github.bonigarcia.wdm.WebDriverManager;
-import utils.LoginHelper;
+import pages.LoginPage;
 
 public class BaseTest {
     protected static WebDriver driver;
@@ -17,7 +17,7 @@ public class BaseTest {
         driver.manage().window().maximize();
 
         // Login once for all tests in this class
-        LoginHelper.login(driver);
+        LoginPage.login(driver);
     }
 
     @AfterClass
