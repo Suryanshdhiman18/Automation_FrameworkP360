@@ -1,6 +1,7 @@
 package pages;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -10,6 +11,7 @@ import utils.ConfigReader;
 
 import java.time.Duration;
 import java.util.Scanner;
+import java.util.concurrent.TimeoutException;
 
 public class LoginPage {
 
@@ -42,12 +44,34 @@ public class LoginPage {
         sc.nextLine(); // wait until user presses Enter
 
         // 4. Handle "Stay signed in?" if it appears
+     // 4. Handle "Stay signed in?" (KMSI)
         try {
-            WebElement staySignedIn = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("idSIButton9")));
-            staySignedIn.click();
+            WebDriverWait waitKmsi = new WebDriverWait(driver, Duration.ofSeconds(30));
+
+            // 1. Wait for Stay signed in page
+            wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//*[contains(text(),'Stay signed')]")
+            ));
+
+            // 2. Wait for Yes button to be enabled (NOT just present)
+            WebElement yesButton = waitKmsi.until(webDriver -> {
+                WebElement btn = webDriver.findElement(By.id("idSIButton9"));
+                return (btn.isDisplayed() && btn.isEnabled()) ? btn : null;
+            });
+
+
+            // 3. Scroll + JS click (MS blocks native clicks sometimes)
+            ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block:'center'}); arguments[0].click();",
+                yesButton
+            );
+
+            System.out.println("✅ Clicked 'Yes' on Stay signed in page.");
+
         } catch (Exception e) {
-            System.out.println("Stay signed in? prompt not shown.");
+            System.out.println("ℹ️ Stay signed in page not displayed.");
         }
+
 
         System.out.println("✅ Login Successful. You can now continue with tests.");
     }
