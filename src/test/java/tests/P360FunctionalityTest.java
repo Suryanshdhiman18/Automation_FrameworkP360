@@ -3,17 +3,33 @@ package tests;
 import base.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import pages.GridPage;
-import pages.P360SearchPage;
-import pages.ProductDetailPage;
+
+import pages.common.SidebarComponent;
+import pages.p360.GridPage;
+import pages.p360.P360SearchPage;
+import pages.p360.ProductDetailPage;
 import utils.BrokenLinkValidator;
 
 import java.util.Map;
 
 public class P360FunctionalityTest extends BaseTest {
+	
+//	@Test
+//	public void p360Flow() {
+//
+//	    SidebarComponent sidebar = new SidebarComponent(driver);
+//	    sidebar.goToP360();
+//
+//	    P360SearchPage searchPage = new P360SearchPage(driver);
+//	    searchPage.verifyP360Loaded();
+//	}
 
     @Test(priority = 1)
     public void verifyP360IsLoaded() {
+    	
+	    SidebarComponent sidebar = new SidebarComponent(driver);
+	    sidebar.goToP360();
+
         P360SearchPage searchPage = new P360SearchPage(driver);
         searchPage.verifyP360Loaded();
         System.out.println("✅ P360 module loaded successfully.");
@@ -70,7 +86,7 @@ public class P360FunctionalityTest extends BaseTest {
 
         productDetailPage.enterShareDescription("Sharing product for review");
         productDetailPage.selectUserToShare("Shruti"); // 🔁 replace with valid user
-        productDetailPage.addOptionalComment("Please review pricing and availability");
+        productDetailPage.addOptionalComment("Please review pricing and availability"); 
 
         productDetailPage.clickShareConfirm();
         productDetailPage.verifyShareSuccess();
@@ -91,5 +107,8 @@ public class P360FunctionalityTest extends BaseTest {
     	
     	System.out.println("✅ Broken links & images validation completed.");
     }
+    
+    
+   
     
 }
