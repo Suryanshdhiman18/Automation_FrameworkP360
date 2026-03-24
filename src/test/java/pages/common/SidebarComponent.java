@@ -12,7 +12,16 @@ public class SidebarComponent {
 
     // Locators (adjust properly from UI)
     private By p360Icon = By.xpath("//li[.//a[normalize-space()='Product 360']]");
-    private By catalogIcon = By.xpath("//li[.//a[normalize-space()='My Catalog']]");
+    
+    private By dataMenu = By.xpath(
+    	    "//div[contains(@class,'material-symbols-outlined') and normalize-space()='business_center']");
+    
+//    private By catalogIcon = By.xpath("//li[.//a[normalize-space()='My Catalog']]");
+    private By catalogIcon = By.xpath("//a[normalize-space()='My Catalog']");
+    
+    
+//    private By basketIcon = By.xpath("//li[.//a[normalize-space()='Baskets']]");
+    private By basketIcon = By.xpath("//a[normalize-space()='Baskets']");
 
     public SidebarComponent(WebDriver driver) {
         this.driver = driver;
@@ -23,7 +32,44 @@ public class SidebarComponent {
         wait.until(ExpectedConditions.elementToBeClickable(p360Icon)).click();
     }
 
+//    Catalog --
+    
+//    public void goToCatalog() {
+//        wait.until(ExpectedConditions.elementToBeClickable(catalogIcon)).click();
+//    }
+    
     public void goToCatalog() {
-        wait.until(ExpectedConditions.elementToBeClickable(catalogIcon)).click();
+    	
+    	WebElement menu = wait.until(
+    			ExpectedConditions.elementToBeClickable(dataMenu));
+    	
+    	menu.click();
+    	
+    	WebElement catalog = wait.until(
+    			ExpectedConditions.elementToBeClickable(catalogIcon));
+    	
+    	catalog.click();
+    			
+    }
+    
+//    Basket --
+    
+//    public void goToBasket() {
+//    	wait.until(ExpectedConditions.elementToBeClickable(basketIcon)).click();
+//    }
+    
+    public void goToBasket() {
+
+        // Click parent menu (this opens dropdown)
+        WebElement menu = wait.until(
+            ExpectedConditions.elementToBeClickable(dataMenu));
+
+        menu.click();
+
+        // Click Baskets option
+        WebElement basket =
+            wait.until(ExpectedConditions.elementToBeClickable(basketIcon));
+
+        basket.click();
     }
 }

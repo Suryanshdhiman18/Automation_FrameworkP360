@@ -18,7 +18,7 @@ public class LoginPage {
     // ===== Constructor =====
     public LoginPage(WebDriver driver) {
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
     // ===== Locators (same as before, just structured) =====

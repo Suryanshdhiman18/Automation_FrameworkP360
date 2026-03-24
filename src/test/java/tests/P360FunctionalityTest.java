@@ -2,6 +2,7 @@ package tests;
 
 import base.BaseTest;
 import org.testng.Assert;
+import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import pages.common.SidebarComponent;
@@ -12,18 +13,10 @@ import utils.BrokenLinkValidator;
 
 import java.util.Map;
 
+@Listeners(listeners.TestListener.class)
 public class P360FunctionalityTest extends BaseTest {
 	
-//	@Test
-//	public void p360Flow() {
-//
-//	    SidebarComponent sidebar = new SidebarComponent(driver);
-//	    sidebar.goToP360();
-//
-//	    P360SearchPage searchPage = new P360SearchPage(driver);
-//	    searchPage.verifyP360Loaded();
-//	}
-
+	
     @Test(priority = 1)
     public void verifyP360IsLoaded() {
     	
@@ -38,9 +31,9 @@ public class P360FunctionalityTest extends BaseTest {
     @Test(priority = 2, dependsOnMethods = "verifyP360IsLoaded")
     public void searchForProduct() {
         P360SearchPage searchPage = new P360SearchPage(driver);
-        searchPage.searchProduct("mango");
+        searchPage.searchProduct("coke");
         searchPage.clickSearch();
-        System.out.println("✅ Search executed for product: mango");
+        System.out.println("✅ Search executed for product: coke");
     }
     
     @Test(priority = 3, dependsOnMethods = "searchForProduct")
@@ -94,8 +87,6 @@ public class P360FunctionalityTest extends BaseTest {
         System.out.println("✅ Product shared successfully with selected user.");
     }
 
-
-
     
     @Test(priority = 7, dependsOnMethods = "openProductDetail")
     public void checkBrokenLinks() {
@@ -107,8 +98,5 @@ public class P360FunctionalityTest extends BaseTest {
     	
     	System.out.println("✅ Broken links & images validation completed.");
     }
-    
-    
-   
     
 }

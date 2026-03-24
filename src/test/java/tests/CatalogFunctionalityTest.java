@@ -1,44 +1,71 @@
 package tests;
 
-import pages.catalog.*;
 import org.testng.Assert;
+
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import base.BaseTest;
+import pages.catalog.CatalogPage;
+import pages.catalog.UploadCatalogModal;
 import pages.common.SidebarComponent;
+import utils.FileUploadUtil;
+import utils.CatalogUploadDataProvider;
 
-public class CatalogFunctionalityTest extends BaseTest{
-	
-	@Test(priority = 1)
-	public void uploadValidCatalog() {
-		
-		SidebarComponent sidebar = new SidebarComponent(driver);
-		sidebar.goToCatalog();
-		
-		CatalogPage catalogPage = new CatalogPage(driver);
-		catalogPage.clickUploadCatalog();
-		
-		UploadCatalogModal modal = new UploadCatalogModal(driver);
-		modal.uploadFile(System.getProperty("user.dir") + "\"/src/test/resources/testfiles/valid_catalog.xlsx\"");
-		
-		 Assert.assertTrue(modal.isUploadSuccessful(),
-	                "Valid file upload should succeed");
-	}
-	
-	 @Test(priority = 2)
-	    public void uploadInvalidCatalog() {
+@Listeners(listeners.TestListener.class)
+public class CatalogFunctionalityTest extends BaseTest {
 
-	        SidebarComponent sidebar = new SidebarComponent(driver);
-	        sidebar.goToCatalog();
+    private CatalogPage catalogPage;
+    private UploadCatalogModal modal;
 
-	        CatalogPage catalogPage = new CatalogPage(driver);
-	        catalogPage.clickUploadCatalog();
+    @BeforeMethod
+    public void navigateToCatalog() {
 
-	        UploadCatalogModal modal = new UploadCatalogModal(driver);
-	        modal.uploadFile(System.getProperty("user.dir") +
-	                "/src/test/resources/testfiles/invalid_catalog.xlsx");
+        SidebarComponent sidebar = new SidebarComponent(driver);
+        sidebar.goToCatalog();
 
-	        Assert.assertTrue(modal.isUploadFailed(),
-	                "Invalid file upload should fail");
-	    }
+        catalogPage = new CatalogPage(driver);
+        catalogPage.openUploadCatalogModal();
+
+        modal = new UploadCatalogModal(driver);
+    }
+
+    @Test(dataProvider = "catalogUploadData",
+          dataProviderClass = CatalogUploadDataProvider.class)
+    public void testCatalogUpload(String scenario, String fileName) {
+
+        System.out.println("Running scenario: " + scenario);
+
+        modal.uploadFile(FileUploadUtil.getFilePath(fileName));
+
+        modal.clickUpload();
+
+        switch (scenario) {
+
+            case "VALID":
+
+                Assert.assertTrue(modal.isValidationSuccessful(),
+                        "Catalog validation should succeed");
+
+                modal.clickUploadValidRecords();
+                break;
+
+            case "INVALID":
+
+                Assert.assertTrue(modal.isUploadFailed(),
+                        "Invalid catalog should fail validation");
+                break;
+
+            case "PARTIAL":
+
+                Assert.assertTrue(modal.isPartialUpload(),
+                        "Partial validation message should appear");
+
+                modal.downloadErrorRecords();
+
+                modal.clickUploadValidRecords();
+                break;
+        }
+    }
 }

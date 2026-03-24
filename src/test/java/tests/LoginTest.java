@@ -7,8 +7,10 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
+import config.ConfigReader;
+
 import java.time.Duration;
-import utils.ConfigReader;
 
 public class LoginTest {
 

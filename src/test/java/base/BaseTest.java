@@ -4,9 +4,11 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+
+import config.ConfigReader;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import pages.common.LoginPage;
-import utils.ConfigReader;
+import utils.PopupHandler;
 import factory.DriverFactory;
 
 
@@ -32,6 +34,8 @@ public class BaseTest {
                 ConfigReader.get("username"),
                 ConfigReader.get("password")
         );
+        
+//        PopupHandler.handleReleaseNotesPopup(driver);  
     }
 
     @AfterClass

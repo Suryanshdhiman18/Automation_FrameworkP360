@@ -2,10 +2,13 @@ package pages.p360;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import utils.ScreenshotUtil;
 
 import java.time.Duration;
+import java.util.List;
 
 public class ProductDetailPage {
 
@@ -17,7 +20,10 @@ public class ProductDetailPage {
             "//div[@class='filter-block-content']//div[1]//div[1]//div[4]//a[1]"
     );
 
-    private By productDescription = By.xpath("//span[@class='product-description']");
+//    private By productDescription = By.xpath("//span[@class='product-description']");
+    private By productDescription = By.xpath("//span[contains(@class,'product-description')]");
+    
+    
     private By upcValue = By.xpath("//label[normalize-space()='UPC:']/following-sibling::span");
 
     private By exportButton = By.xpath("//div[@class='p360-top-bar']//button[2]");
@@ -51,7 +57,7 @@ public class ProductDetailPage {
 
     public ProductDetailPage(WebDriver driver) {
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
     // ----------------- Navigation -----------------
@@ -73,8 +79,36 @@ public class ProductDetailPage {
 
     // ----------------- Validations -----------------
 
+//    public String waitForProductDescription() {
+//        WebElement desc = wait.until(ExpectedConditions.visibilityOfElementLocated(productDescription));
+//        ScreenshotUtil.captureScreenshot(driver, "ProductDetail");
+//        return desc.getText().trim();
+//    }
+    
     public String waitForProductDescription() {
-        WebElement desc = wait.until(ExpectedConditions.visibilityOfElementLocated(productDescription));
+
+        Wait<WebDriver> wait = new FluentWait<>(driver)
+                .withTimeout(Duration.ofSeconds(60))
+                .pollingEvery(Duration.ofMillis(500))
+                .ignoring(NoSuchElementException.class)
+                .ignoring(StaleElementReferenceException.class);
+
+        WebElement desc = wait.until(driver -> {
+            List<WebElement> elements = driver.findElements(
+                    By.xpath("//span[contains(@class,'product-description')]")
+            );
+
+            if (!elements.isEmpty()) {
+                WebElement el = elements.get(0);
+
+                String text = el.getText().trim();
+                if (el.isDisplayed() && !text.isEmpty()) {
+                    return el;
+                }
+            }
+            return null;
+        });
+
         ScreenshotUtil.captureScreenshot(driver, "ProductDetail");
         return desc.getText().trim();
     }

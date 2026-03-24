@@ -45,6 +45,7 @@ public class BrokenLinkValidator {
             } catch (Exception e) {
                 softAssert.fail("Exception for Link: " + url + " | " + e.getMessage());
             }
+            
         }
     }
 

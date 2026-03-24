@@ -1,0 +1,17 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<suite name="Full Regression Suite">
+
+    <test name="Catalog">
+        <classes>
+            <class name="tests.CatalogFunctionalityTest"/>
+        </classes>
+    </test>
+
+    <test name="P360">
+        <classes>
+            <class name="tests.P360FunctionalityTest"/>
+        </classes>
+    </test>
+
+</suite>

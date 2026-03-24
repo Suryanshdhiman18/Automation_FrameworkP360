@@ -1,0 +1,11 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<suite name="Catalog Suite">
+
+    <test name="Catalog Tests">
+        <classes>
+            <class name="tests.CatalogFunctionalityTest"/>
+        </classes>
+    </test>
+
+</suite>
