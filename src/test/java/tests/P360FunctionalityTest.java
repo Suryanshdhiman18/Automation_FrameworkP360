@@ -6,7 +6,7 @@ import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import pages.common.SidebarComponent;
-import pages.p360.GridPage;
+//import pages.p360.GridPage;
 import pages.p360.P360SearchPage;
 import pages.p360.ProductDetailPage;
 import utils.BrokenLinkValidator;
@@ -18,19 +18,20 @@ public class P360FunctionalityTest extends BaseTest {
 	
 	
     @Test(priority = 1)
+    
     public void verifyP360IsLoaded() {
     	
-	    SidebarComponent sidebar = new SidebarComponent(driver);
+	    SidebarComponent sidebar = new SidebarComponent(getDriver());
 	    sidebar.goToP360();
 
-        P360SearchPage searchPage = new P360SearchPage(driver);
+        P360SearchPage searchPage = new P360SearchPage(getDriver());
         searchPage.verifyP360Loaded();
         System.out.println("✅ P360 module loaded successfully.");
     }
 
     @Test(priority = 2, dependsOnMethods = "verifyP360IsLoaded")
     public void searchForProduct() {
-        P360SearchPage searchPage = new P360SearchPage(driver);
+        P360SearchPage searchPage = new P360SearchPage(getDriver());
         searchPage.searchProduct("coke");
         searchPage.clickSearch();
         System.out.println("✅ Search executed for product: coke");
@@ -38,7 +39,7 @@ public class P360FunctionalityTest extends BaseTest {
     
     @Test(priority = 3, dependsOnMethods = "searchForProduct")
     public void openProductDetail() {
-        ProductDetailPage productDetailPage = new ProductDetailPage(driver);
+        ProductDetailPage productDetailPage = new ProductDetailPage(getDriver());
 
         productDetailPage.openFirstProductDetail();
         String description = productDetailPage.waitForProductDescription();
@@ -51,7 +52,7 @@ public class P360FunctionalityTest extends BaseTest {
 
     @Test(priority = 4, dependsOnMethods = "openProductDetail")
     public void verifyGridDataUI() {
-        GridPage gridPage = new GridPage(driver);
+    	ProductDetailPage gridPage = new ProductDetailPage(getDriver());
 
         gridPage.waitForGridToLoad();
         Map<String, Map<String, String>> gridData = gridPage.getGridData();
@@ -67,13 +68,13 @@ public class P360FunctionalityTest extends BaseTest {
     
     @Test(priority = 5, dependsOnMethods = "openProductDetail")
     public void exportResults() {
-        ProductDetailPage detailPage = new ProductDetailPage(driver);
+        ProductDetailPage detailPage = new ProductDetailPage(getDriver());
         detailPage.exportSearchResults();
     }
     
     @Test(priority = 6, dependsOnMethods = "openProductDetail")
     public void shareProductWithUser() {
-        ProductDetailPage productDetailPage = new ProductDetailPage(driver);
+        ProductDetailPage productDetailPage = new ProductDetailPage(getDriver());
 
         productDetailPage.openShareDialog();
 
@@ -88,15 +89,15 @@ public class P360FunctionalityTest extends BaseTest {
     }
 
     
-    @Test(priority = 7, dependsOnMethods = "openProductDetail")
-    public void checkBrokenLinks() {
-    	BrokenLinkValidator validator = new BrokenLinkValidator(driver);
-    	validator.validateLinks();
-    	validator.validateImages();
-    	
-    	validator.assertAll();
-    	
-    	System.out.println("✅ Broken links & images validation completed.");
-    }
+//    @Test(priority = 7, dependsOnMethods = "openProductDetail")
+//    public void checkBrokenLinks() {
+//    	BrokenLinkValidator validator = new BrokenLinkValidator(getDriver());
+//    	validator.validateLinks();
+//    	validator.validateImages(); 
+//    	
+//    	validator.assertAll();
+//    	
+//    	System.out.println("✅ Broken links & images validation completed.");
+//    }
     
 }

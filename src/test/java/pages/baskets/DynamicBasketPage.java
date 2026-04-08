@@ -4,10 +4,15 @@ import java.time.Duration;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.*;
 
+import org.slf4j.Logger;
+import utils.LoggerUtil;
+
 public class DynamicBasketPage {
 
     private WebDriver driver;
     private WebDriverWait wait;
+
+    private static final Logger log = LoggerUtil.getLogger(DynamicBasketPage.class);
 
     private By basketNameField =
             By.xpath("//input[@placeholder='Basket Name']");
@@ -19,97 +24,177 @@ public class DynamicBasketPage {
             By.xpath("//label[contains(text(),'Catalog')]/following::span[contains(@class,'k-input-value-text')][1]");
 
     private By departmentOption =
-    		By.xpath("//span[normalize-space()='Department']");
+            By.xpath("//span[normalize-space()='Department']");
 
     private By departmentDropdown =
             By.xpath("//rdui-multiselect[@id='multiSelect']//div[contains(@class,'multi-select-container')]");
 
-//    private By firstDepartmentValue =
-//            By.xpath("//label[contains(@class,'k-checkbox-label')]");
-
     private By createButton =
             By.xpath("//span[normalize-space()='Create']/ancestor::button");
-    
-    private By successPopup =
-    	    By.xpath("//label[@class='rdui-label' and contains(normalize-space(.),'Basket created successfully')]");
 
-    private By closeButton = 
-    		By.xpath("//button[.//span[normalize-space()='Close']]");
+    private By successPopup =
+            By.xpath("//label[contains(normalize-space(.),'Basket created successfully')]");
+
+    private By closeButton =
+            By.xpath("//button[.//span[normalize-space()='Close']]");
 
     public DynamicBasketPage(WebDriver driver) {
-
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
+    // ------------------ INPUT ------------------
+
     public void enterBasketName(String name) {
 
-        wait.until(ExpectedConditions.visibilityOfElementLocated(basketNameField))
-                .sendKeys(name);
+        log.info("Entering dynamic basket name: {}", name);
+
+        try {
+            WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(basketNameField));
+            input.clear();
+            input.sendKeys(name);
+
+            log.info("Basket name entered successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to enter basket name: {}", name, e);
+            throw e;
+        }
     }
 
     public void enterDescription(String description) {
 
-        driver.findElement(descriptionField).sendKeys(description);
+        log.info("Entering basket description");
+
+        try {
+            WebElement desc = wait.until(ExpectedConditions.visibilityOfElementLocated(descriptionField));
+            desc.clear();
+            desc.sendKeys(description);
+
+            log.info("Basket description entered successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to enter basket description", e);
+            throw e;
+        }
     }
+
+    // ------------------ DROPDOWN FLOW ------------------
 
     public void selectAttributeType() {
 
-        wait.until(ExpectedConditions.elementToBeClickable(attributeDropdown)).click();
+        log.info("Selecting attribute type: Department");
 
-        wait.until(ExpectedConditions.elementToBeClickable(departmentOption)).click();
-        
-        driver.findElement(departmentOption).click();
+        try {
+            wait.until(ExpectedConditions.elementToBeClickable(attributeDropdown)).click();
+
+            WebElement option =
+                    wait.until(ExpectedConditions.elementToBeClickable(departmentOption));
+
+            option.click();
+
+            log.info("Attribute 'Department' selected successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to select attribute type: Department", e);
+            throw e;
+        }
     }
 
     public void selectDepartmentValues(String... values) {
 
-        wait.until(ExpectedConditions.elementToBeClickable(departmentDropdown)).click();
-        
-        WebElement search =
-                wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//input[contains(@placeholder,'Search')]")));
-        
+        log.info("Selecting department values: {}", (Object) values);
 
-        for (String value : values) {
+        try {
+            wait.until(ExpectedConditions.elementToBeClickable(departmentDropdown)).click();
 
-//            WebElement search =
-//                wait.until(ExpectedConditions.visibilityOfElementLocated(
-//                    By.xpath("//input[contains(@placeholder,'Search')]")));
+            WebElement search =
+                    wait.until(ExpectedConditions.visibilityOfElementLocated(
+                            By.xpath("//input[contains(@placeholder,'Search')]")));
 
-            search.clear();
-            search.sendKeys(value);
+            for (String value : values) {
 
-            By option =
-            		By.xpath("//kendo-label[contains(normalize-space(),'" + value.toUpperCase() + "')]");
+                log.info("Selecting department value: {}", value);
 
-            WebElement element =
-                wait.until(ExpectedConditions.visibilityOfElementLocated(option));
+                search.clear();
+                search.sendKeys(value);
 
-            ((JavascriptExecutor)driver)
-                .executeScript("arguments[0].click();", element);
-            
+                By option =
+                        By.xpath("//kendo-label[contains(normalize-space(),'" + value.toUpperCase() + "')]");
+
+                WebElement element =
+                        wait.until(ExpectedConditions.visibilityOfElementLocated(option));
+
+                ((JavascriptExecutor) driver)
+                        .executeScript("arguments[0].click();", element);
+
+                log.info("Selected value: {}", value);
+            }
+
+            // Close dropdown safely
+            driver.findElement(basketNameField).click();
+
+            log.info("All department values selected successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to select department values", e);
+            throw e;
         }
-        
-        driver.findElement(basketNameField).click();
     }
-    
+
+    // ------------------ ACTION ------------------
+
     public void clickCreate() {
 
-        wait.until(ExpectedConditions.elementToBeClickable(createButton)).click();
+        log.info("Clicking Create button for dynamic basket");
+
+        try {
+            wait.until(ExpectedConditions.elementToBeClickable(createButton)).click();
+
+            log.info("Create action triggered successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to click Create button", e);
+            throw e;
+        }
     }
-    
+
+    // ------------------ VALIDATION ------------------
+
     public boolean isSuccessPopupVisible() {
 
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(successPopup))
-                .isDisplayed();
+        log.info("Verifying dynamic basket creation success popup");
+
+        try {
+            boolean visible = wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(successPopup))
+                    .isDisplayed();
+
+            log.info("Success popup visible: {}", visible);
+
+            return visible;
+
+        } catch (Exception e) {
+            log.error("Success popup not visible", e);
+            return false;
+        }
     }
-    
+
     public void closeSuccessPopup() {
 
-        WebElement close =
-                wait.until(ExpectedConditions.elementToBeClickable(closeButton));
+        log.info("Closing success popup");
 
-        close.click();
+        try {
+            WebElement close =
+                    wait.until(ExpectedConditions.elementToBeClickable(closeButton));
+
+            close.click();
+
+            log.info("Success popup closed successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to close success popup", e);
+            throw e;
+        }
     }
 }

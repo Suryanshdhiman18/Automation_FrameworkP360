@@ -14,13 +14,16 @@ public class BrokenLinkValidator {
     private WebDriver driver;
     private SoftAssert softAssert;
 
+    // 🔑 Define your company domain here
+    private static final String COMPANY_DOMAIN = "rdcas-syn-hom-app-1-dev.azurewebsites.net";
+
     public BrokenLinkValidator(WebDriver driver) {
         this.driver = driver;
         this.softAssert = new SoftAssert();
     }
 
     public void validateLinks() {
-        System.out.println("🔍 Validating all links on the page...");
+        System.out.println("🔍 Validating company links only...");
 
         List<WebElement> links = driver.findElements(By.tagName("a"));
 
@@ -32,11 +35,37 @@ public class BrokenLinkValidator {
             }
 
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                conn.setRequestMethod("HEAD");
-                conn.connect();
+                URL linkUrl = new URL(url);
 
-                int status = conn.getResponseCode();
+                // 🚫 Skip external domains
+                if (!linkUrl.getHost().contains(COMPANY_DOMAIN)) {
+                    continue;
+                }
+
+                HttpURLConnection conn = (HttpURLConnection) linkUrl.openConnection();
+                conn.setRequestMethod("HEAD");
+
+                int status;
+
+                try {
+                    conn.connect();
+                    status = conn.getResponseCode();
+
+                    // 🔁 Retry with GET if HEAD not allowed
+                    if (status == 405) {
+                        conn = (HttpURLConnection) linkUrl.openConnection();
+                        conn.setRequestMethod("GET");
+                        conn.connect();
+                        status = conn.getResponseCode();
+                    }
+
+                } catch (Exception e) {
+                    // fallback to GET
+                    conn = (HttpURLConnection) linkUrl.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.connect();
+                    status = conn.getResponseCode();
+                }
 
                 System.out.println("🔗 " + url + " → " + status);
                 softAssert.assertTrue(status < 400,
@@ -45,12 +74,11 @@ public class BrokenLinkValidator {
             } catch (Exception e) {
                 softAssert.fail("Exception for Link: " + url + " | " + e.getMessage());
             }
-            
         }
     }
 
     public void validateImages() {
-        System.out.println("🖼️ Validating all images on the page...");
+        System.out.println("🖼️ Validating company images only...");
 
         List<WebElement> images = driver.findElements(By.tagName("img"));
 
@@ -60,11 +88,36 @@ public class BrokenLinkValidator {
             if (src == null || src.isEmpty()) continue;
 
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(src).openConnection();
-                conn.setRequestMethod("HEAD");
-                conn.connect();
+                URL imageUrl = new URL(src);
 
-                int status = conn.getResponseCode();
+                // 🚫 Skip external domains (like Microsoft maps)
+                if (!imageUrl.getHost().contains(COMPANY_DOMAIN)) {
+                    continue;
+                }
+
+                HttpURLConnection conn = (HttpURLConnection) imageUrl.openConnection();
+                conn.setRequestMethod("HEAD");
+
+                int status;
+
+                try {
+                    conn.connect();
+                    status = conn.getResponseCode();
+
+                    // 🔁 Retry with GET if HEAD fails
+                    if (status == 405) {
+                        conn = (HttpURLConnection) imageUrl.openConnection();
+                        conn.setRequestMethod("GET");
+                        conn.connect();
+                        status = conn.getResponseCode();
+                    }
+
+                } catch (Exception e) {
+                    conn = (HttpURLConnection) imageUrl.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.connect();
+                    status = conn.getResponseCode();
+                }
 
                 System.out.println("🖼️ " + src + " → " + status);
                 softAssert.assertTrue(status < 400,

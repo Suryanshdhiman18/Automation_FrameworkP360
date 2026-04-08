@@ -1,45 +1,72 @@
 package base;
 
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import config.ConfigReader;
-import io.github.bonigarcia.wdm.WebDriverManager;
 import pages.common.LoginPage;
 import utils.PopupHandler;
 import factory.DriverFactory;
 
+// ✅ Logger imports
+import org.slf4j.Logger;
+import utils.LoggerUtil;
 
 public class BaseTest {
 
-    protected WebDriver driver;
+    private WebDriver driver;
+
+    // ✅ Initialize logger
+    private static final Logger log = LoggerUtil.getLogger(BaseTest.class);
 
     @BeforeClass
     public void setup() throws InterruptedException {
-    	
-    	System.out.println("Initializing driver...");
+
+        log.info("Initializing WebDriver...");
+
         DriverFactory.initDriver("chrome");
-        
-        driver = DriverFactory.getDriver();
-        System.out.println("Driver value: " + driver);
-        
-        System.out.println("URL from config: " + ConfigReader.get("url"));
 
-        driver.get(ConfigReader.get("url"));
+        setDriver(DriverFactory.getDriver());
 
-        LoginPage loginPage = new LoginPage(driver);
+        log.info("Driver initialized: {}", getDriver());
+
+        String url = ConfigReader.get("url");
+        log.info("Navigating to URL: {}", url);
+
+        getDriver().get(url);
+
+        log.info("Performing login...");
+
+        LoginPage loginPage = new LoginPage(getDriver());
         loginPage.login(
                 ConfigReader.get("username"),
                 ConfigReader.get("password")
         );
-        
-//        PopupHandler.handleReleaseNotesPopup(driver);  
+
+        log.info("Login successful");
+
+        // Optional popup handling
+         PopupHandler.handleReleaseNotesPopup(getDriver());
+
+        log.info("Setup completed successfully");
     }
 
     @AfterClass
     public void tearDown() {
+
+        log.info("Closing driver...");
+
         DriverFactory.quitDriver();
+
+        log.info("Driver closed successfully");
+    }
+
+    public WebDriver getDriver() {
+        return driver;
+    }
+
+    public void setDriver(WebDriver driver) {
+        this.driver = driver;
     }
 }

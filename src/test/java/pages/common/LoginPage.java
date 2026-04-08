@@ -1,19 +1,19 @@
 package pages.common;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.*;
+
+import org.slf4j.Logger;
+import utils.LoggerUtil;
 
 import java.time.Duration;
-import java.util.Scanner;
 
 public class LoginPage {
 
     private WebDriver driver;
     private WebDriverWait wait;
+
+    private static final Logger log = LoggerUtil.getLogger(LoginPage.class);
 
     // ===== Constructor =====
     public LoginPage(WebDriver driver) {
@@ -21,56 +21,118 @@ public class LoginPage {
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
-    // ===== Locators (same as before, just structured) =====
+    // ===== Locators =====
     private By emailField = By.id("i0116");
     private By nextButton = By.id("idSIButton9");
     private By passwordField = By.id("i0118");
-    private By staySignedInText = By.xpath("//*[contains(text(),'Stay signed')]");
+
+    // Stay signed in
+    private By staySignedInTitle =
+            By.xpath("//*[contains(text(),'Stay signed in')]");
+
     private By yesButton = By.id("idSIButton9");
 
+    // Post login (VERY IMPORTANT)
+    private By postLoginElement =
+            By.xpath("//span[contains(text(),'Baskets') or contains(text(),'Dashboard')]");
+
     // ===== Login Method =====
-    public void login(String username, String password) throws InterruptedException {
+    public void login(String username, String password) {
 
-        // 1. Enter Email
-        WebElement email = wait.until(ExpectedConditions.visibilityOfElementLocated(emailField));
-        email.sendKeys(username);
+        log.info("Starting login process");
 
-        driver.findElement(nextButton).click();
-
-        // 2. Enter Password
-        WebElement pwd = wait.until(ExpectedConditions.visibilityOfElementLocated(passwordField));
-        pwd.sendKeys(password);
-
-        driver.findElement(nextButton).click();
-
-        // 3. Handle MFA manually
-        System.out.println("⚠️ Please enter the authenticator code on the portal manually.");
-        System.out.println("Press Enter here after entering the code to continue the test...");
-        Scanner sc = new Scanner(System.in);
-        sc.nextLine();
-
-        // 4. Handle Stay signed in
         try {
-            WebDriverWait waitKmsi = new WebDriverWait(driver, Duration.ofSeconds(30));
+            // ---------- Email ----------
+            WebElement email = wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(emailField));
+            email.sendKeys(username);
+            log.info("Username entered");
 
-            waitKmsi.until(ExpectedConditions.visibilityOfElementLocated(staySignedInText));
+            driver.findElement(nextButton).click();
 
-            WebElement yesBtn = waitKmsi.until(webDriver -> {
-                WebElement btn = webDriver.findElement(yesButton);
-                return (btn.isDisplayed() && btn.isEnabled()) ? btn : null;
-            });
+            // ---------- Password ----------
+            WebElement pwd = wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(passwordField));
+            pwd.sendKeys(password);
+            log.info("Password entered");
 
-            ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].scrollIntoView({block:'center'}); arguments[0].click();",
-                    yesBtn
-            );
+            driver.findElement(nextButton).click();
 
-            System.out.println("✅ Clicked 'Yes' on Stay signed in page.");
+            // ---------- MFA Handling (NEW) ----------
+            waitForMFACompletion();
+
+            // ---------- Stay Signed In ----------
+            handleStaySignedIn();
+
+            log.info("Login completed successfully");
 
         } catch (Exception e) {
-            System.out.println("ℹ️ Stay signed in page not displayed.");
+            log.error("Login failed", e);
+            throw e;
         }
+    }
 
-        System.out.println("✅ Login Successful. You can now continue with tests.");
+    // ===== MFA WAIT (NEW CORE FIX) =====
+    private void waitForMFACompletion() {
+
+        WebDriverWait waitMFA = new WebDriverWait(driver, Duration.ofSeconds(120));
+
+        log.warn("MFA step detected - waiting for user to complete on UI...");
+
+        try {
+            waitMFA.until(ExpectedConditions.or(
+
+                    // ✅ Either dashboard loads
+                    ExpectedConditions.visibilityOfElementLocated(postLoginElement),
+
+                    // ✅ Or stay signed in appears
+                    ExpectedConditions.visibilityOfElementLocated(staySignedInTitle)
+            ));
+
+            log.info("MFA completed successfully (UI transition detected)");
+
+        } catch (TimeoutException e) {
+            log.error("MFA not completed within expected time", e);
+            throw e;
+        }
+    }
+
+    // ===== Handle Stay Signed In =====
+    private void handleStaySignedIn() {
+
+        WebDriverWait waitKmsi = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        try {
+            log.info("Checking for 'Stay signed in?' prompt");
+
+            WebElement title = waitKmsi.until(
+                    ExpectedConditions.visibilityOfElementLocated(staySignedInTitle));
+
+            if (title.isDisplayed()) {
+
+                log.info("'Stay signed in?' prompt detected");
+
+                WebElement yesBtn = waitKmsi.until(
+                        ExpectedConditions.elementToBeClickable(yesButton));
+
+                try {
+                    yesBtn.click();
+                } catch (Exception e) {
+                    ((JavascriptExecutor) driver)
+                            .executeScript("arguments[0].click();", yesBtn);
+                }
+
+                log.info("Clicked 'Yes' on Stay signed in");
+
+                waitKmsi.until(ExpectedConditions.invisibilityOf(title));
+
+                log.info("'Stay signed in?' handled successfully");
+            }
+
+        } catch (TimeoutException e) {
+            log.info("'Stay signed in?' prompt not displayed — continuing");
+        } catch (Exception e) {
+            log.warn("Error while handling 'Stay signed in?'", e);
+        }
     }
 }

@@ -1,7 +1,6 @@
 package tests;
 
 import org.testng.Assert;
-
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
@@ -12,6 +11,9 @@ import pages.catalog.UploadCatalogModal;
 import pages.common.SidebarComponent;
 import utils.FileUploadUtil;
 import utils.CatalogUploadDataProvider;
+import utils.LoggerUtil;
+
+import org.slf4j.Logger;
 
 @Listeners(listeners.TestListener.class)
 public class CatalogFunctionalityTest extends BaseTest {
@@ -19,53 +21,94 @@ public class CatalogFunctionalityTest extends BaseTest {
     private CatalogPage catalogPage;
     private UploadCatalogModal modal;
 
+    private static final Logger log =
+            LoggerUtil.getLogger(CatalogFunctionalityTest.class);
+
     @BeforeMethod
     public void navigateToCatalog() {
 
-        SidebarComponent sidebar = new SidebarComponent(driver);
+        log.info("Navigating to Catalog module");
+
+        SidebarComponent sidebar = new SidebarComponent(getDriver());
         sidebar.goToCatalog();
 
-        catalogPage = new CatalogPage(driver);
+        catalogPage = new CatalogPage(getDriver());
         catalogPage.openUploadCatalogModal();
 
-        modal = new UploadCatalogModal(driver);
+        modal = new UploadCatalogModal(getDriver());
+
+        log.info("Upload Catalog modal opened");
     }
 
     @Test(dataProvider = "catalogUploadData",
           dataProviderClass = CatalogUploadDataProvider.class)
     public void testCatalogUpload(String scenario, String fileName) {
 
-        System.out.println("Running scenario: " + scenario);
+        log.info("Starting Catalog Upload test | Scenario: {} | File: {}",
+                scenario, fileName);
 
-        modal.uploadFile(FileUploadUtil.getFilePath(fileName));
+        try {
 
-        modal.clickUpload();
+            // -------- Upload File --------
+            String filePath = FileUploadUtil.getFilePath(fileName);
+            log.info("Uploading file: {}", filePath);
 
-        switch (scenario) {
+            modal.uploadFile(filePath);
 
-            case "VALID":
+            modal.clickUpload();
+            log.info("Upload button clicked");
 
-                Assert.assertTrue(modal.isValidationSuccessful(),
-                        "Catalog validation should succeed");
+            // -------- Scenario Handling --------
+            switch (scenario) {
 
-                modal.clickUploadValidRecords();
-                break;
+                case "VALID":
 
-            case "INVALID":
+                    log.info("Valid scenario - expecting successful validation");
 
-                Assert.assertTrue(modal.isUploadFailed(),
-                        "Invalid catalog should fail validation");
-                break;
+                    Assert.assertTrue(modal.isValidationSuccessful(),
+                            "Catalog validation should succeed");
 
-            case "PARTIAL":
+                    modal.clickUploadValidRecords();
 
-                Assert.assertTrue(modal.isPartialUpload(),
-                        "Partial validation message should appear");
+                    log.info("Valid records uploaded successfully");
+                    break;
 
-                modal.downloadErrorRecords();
+                case "PARTIAL": 
 
-                modal.clickUploadValidRecords();
-                break;
+                	log.info("Partial scenario - expecting partial validation");
+
+                    Assert.assertTrue(modal.isPartialUpload(),
+                            "Partial validation message should appear");
+
+                    modal.downloadErrorRecords();
+                    log.info("Error records downloaded");
+
+                    modal.clickUploadValidRecords();
+                    log.info("Valid records uploaded from partial file");
+
+                    break;
+
+                case "INVALID":                
+                    
+                    log.info("Invalid scenario - expecting validation failure");
+
+                    Assert.assertTrue(modal.isUploadFailed(),
+                            "Invalid catalog should fail validation");
+
+                    log.info("Invalid file validation failed as expected");
+                    
+//                    modal.cancelUploadAndConfirm();
+                    break;
+
+                default:
+                    log.error("Unknown scenario: {}", scenario);
+                    throw new IllegalArgumentException("Invalid scenario: " + scenario);
+            }
+
+        } catch (Exception e) {
+
+            log.error("Catalog upload test failed | Scenario: {}", scenario, e);
+            throw e;
         }
     }
 }

@@ -2,15 +2,21 @@
 
 <suite name="Full Regression Suite">
 
-    <test name="Catalog">
+    <test name="Basket">
         <classes>
-            <class name="tests.CatalogFunctionalityTest"/>
+           <class name="tests.BasketFunctionalityTest"/>
         </classes>
     </test>
 
     <test name="P360">
         <classes>
             <class name="tests.P360FunctionalityTest"/>
+        </classes>
+    </test>
+    
+    <test name="Catalog">
+        <classes>
+            <class name="tests.CatalogFunctionalityTest"/>
         </classes>
     </test>
 

@@ -1,6 +1,7 @@
 package tests;
 
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
@@ -12,52 +13,107 @@ import pages.baskets.DynamicBasketPage;
 import pages.baskets.ManualBasketPage;
 import pages.common.SidebarComponent;
 import utils.RandomDataUtil;
+import utils.LoggerUtil;
+
+import org.slf4j.Logger;
 
 @Listeners(listeners.TestListener.class)
 public class BasketFunctionalityTest extends BaseTest {
 
     private BasketPage basketPage;
-    private CreateBasketPopup popup;
+    private static final Logger log = LoggerUtil.getLogger(BasketFunctionalityTest.class);
 
-    @BeforeMethod
-    public void navigateToBasket() {
+    // -------- Navigate Once --------
+    @BeforeClass
+    public void navigateToBasketModule() {
 
-        SidebarComponent sidebar = new SidebarComponent(driver);
+        log.info("Navigating to Basket module (BeforeClass)");
+
+        SidebarComponent sidebar = new SidebarComponent(getDriver());
         sidebar.goToBasket();
+    }
 
-        basketPage = new BasketPage(driver);
+    // -------- Setup Before Each Test --------
+    @BeforeMethod
+    public void setupPage() {
+
+        log.info("Initializing BasketPage and verifying page load");
+
+        basketPage = new BasketPage(getDriver());
         basketPage.verifyBasketLoaded();
     }
 
+    // -------- Test 1 --------
     @Test(priority = 1)
     public void verifyBasketPageLoaded() {
 
-        System.out.println("✅ Basket module loaded successfully.");
+        log.info("Basket module loaded successfully");
     }
-    
+
+    // -------- Test 2 --------
+    @Test(priority = 2)
+    public void verifyExportBasket() {
+
+        log.info("Starting Export Basket test");
+
+        ensureBasketExists();
+
+//        basketPage.selectFirstBasket();
+
+        Assert.assertTrue(basketPage.isExportEnabled(),
+                "Export button not enabled");
+
+        basketPage.clickExport();
+
+        log.info("Basket exported successfully");
+    }
+
+    // -------- Test 3 --------
+    @Test(priority = 3)
+    public void verifyDeleteBasket() {
+
+        log.info("Starting Delete Basket test");
+
+//        ensureBasketExists();
+
+//        basketPage.selectFirstBasket();
+
+        Assert.assertTrue(basketPage.isDeleteEnabled(),
+                "Delete button not enabled");
+
+        basketPage.clickDelete();
+        basketPage.confirmDelete();
+
+        log.info("Basket deleted successfully");
+    }
+
+    // -------- Test 4 --------
     @Test(priority = 4)
     public void verifyManualBasketCreationFlow() {
 
-        basketPage.clickCreateBasket();
+        log.info("Starting Manual Basket creation test");
 
-        popup = new CreateBasketPopup(driver);
-        popup.selectManualBasket();
+        CreateBasketPopup popup = basketPage.clickCreateBasket();
 
-        ManualBasketPage manualBasket = new ManualBasketPage(driver);
+        ManualBasketPage manualBasket = popup.selectManualBasket();
 
         String basketName = RandomDataUtil.generateBasketName();
 
         manualBasket.enterBasketName(basketName);
-
         manualBasket.enterDescription("Created via automation");
-
         manualBasket.clickCreateBasket();
 
-        System.out.println("Basket created: " + basketName);
+        Assert.assertFalse(manualBasket.isDuplicateErrorDisplayed(),
+                "Duplicate basket error displayed");
+
+        log.info("Manual basket created successfully: {}", basketName);
     }
-    
+
+    // -------- Test 5 --------
     @Test(priority = 5)
     public void verifyDynamicBasketCreationFlow() {
+
+        log.info("Starting Dynamic Basket creation test");
 
         CreateBasketPopup popup = basketPage.clickCreateBasket();
 
@@ -73,48 +129,38 @@ public class BasketFunctionalityTest extends BaseTest {
 
         dynamicBasket.clickCreate();
 
-        // ✅ IMPORTANT VALIDATION
         Assert.assertTrue(dynamicBasket.isSuccessPopupVisible(),
-                "❌ Dynamic basket success popup not visible");
+                "Dynamic basket success popup not visible");
 
         dynamicBasket.closeSuccessPopup();
 
-        System.out.println("✅ Dynamic Basket creation request submitted successfully.");
+        log.info("Dynamic basket created successfully: {}", basketName);
     }
-    
-    @Test(priority = 2)
-    public void verifyExportBasket() {
 
-        basketPage.selectFirstBasket();
+    // -------- Helper Method --------
+    private void ensureBasketExists() {
 
-        Assert.assertTrue(basketPage.isExportEnabled(), "Export button not enabled");
+        log.info("Ensuring at least one basket exists");
 
-        basketPage.clickExport();
+        try {
+            basketPage.selectFirstBasket();
+            log.info("Basket already exists");
 
-//        boolean downloaded = FileDownloadUtil.isFileDownloaded(
-//            "C:\\Users\\SURYANSH\\Downloads", "basket");
+        } catch (Exception e) { 
 
-//        Assert.assertTrue(downloaded, "Export file not downloaded");
+            log.warn("No basket found. Creating a new one");
 
-        System.out.println("✅ Basket exported successfully");
-    }
-    
-    @Test(priority = 3)
-    public void verifyDeleteBasket() {
+            CreateBasketPopup popup = basketPage.clickCreateBasket();
 
-//        String basketName = basketPage.getFirstBasketName();
+            ManualBasketPage manualBasket = popup.selectManualBasket();
 
-//        basketPage.selectFirstBasket();
+            String basketName = RandomDataUtil.generateBasketName();
 
-        Assert.assertTrue(basketPage.isDeleteEnabled(), "Delete button not enabled");
+            manualBasket.enterBasketName(basketName);
+            manualBasket.enterDescription("Auto-created for test");
+            manualBasket.clickCreateBasket();
 
-        basketPage.clickDelete();
-
-        basketPage.confirmDelete();
-
-//        Assert.assertTrue(basketPage.isBasketDeleted(basketName),
-//                "Basket not deleted");
-
-        System.out.println("✅ Basket deleted successfully");
+            log.info("Created fallback basket: {}", basketName);
+        }
     }
 }
