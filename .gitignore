@@ -1,1 +1,50 @@
-/target/
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+
+# Logs
+logs/
+*.log
+
+# Screenshots / Reports
+screenshots/
+reports/
+allure-report/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+.metadata/
+.settings/
+*.iml
+
+# Compiled files
+*.class
+
+# Temporary files
+*.tmp
+*.swp
+
+# Environment files
+.env
+
+# TestNG reports
+test-output/
+
+# Maven wrapper (if used)
+.mvn/
+
+# Eclipse (if anyone opens project there)
+.classpath
+.project
+
+# Coverage reports (if you add later)
+coverage/
+jacoco.exec

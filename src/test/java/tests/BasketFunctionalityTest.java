@@ -137,6 +137,15 @@ public class BasketFunctionalityTest extends BaseTest {
         log.info("Dynamic basket created successfully: {}", basketName);
     }
 
+    public void verfityViewDeletdBaskets() {
+
+        log.info("Starting View Deleted Basket");
+
+        basketPage.viewBaskets();
+
+        log.info("View Successfully");
+    }
+
     // -------- Helper Method --------
     private void ensureBasketExists() {
 

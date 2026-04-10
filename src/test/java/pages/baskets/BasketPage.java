@@ -33,6 +33,9 @@ public class BasketPage {
     private By deletePopup =
             By.xpath("//p[contains(@class,'deleteNote')]");
 
+    private By viewDeletedBasket =
+            By.xpath("");
+
     public BasketPage(WebDriver driver) {
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
@@ -174,6 +177,22 @@ public class BasketPage {
         } catch (Exception e) {
             log.error("Failed to confirm basket deletion", e);
             throw e;
+        }
+    }
+
+    public void viewBaskets() {
+
+        log.info("Checking Deleted Baskets");
+
+        try{
+            wait.until(ExpectedConditions.visibilityOfElementLocated(viewDeletedBasket));
+
+            wait.until(ExpectedConditions.elementToBeClickable(viewDeletedBasket)).click();
+
+            log.info("Deleted Baskets viewed successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to open View Deleted Baskets");
         }
     }
 }
